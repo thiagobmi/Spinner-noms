@@ -1,0 +1,1 @@
+rm -rf code Makefile-nfp4build wire-eno1.pcapng *.txt
