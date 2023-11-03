@@ -87,11 +87,7 @@ header print_t {
   bit<32> ip2;
   bit<8> protocol;
 }
-// register<bit<64>>(10) myRegister;
-register<bit<32>>(5000) flow_label;
-// register<bit<32>>(5000) flow_ip1;
-// register<bit<32>>(5000) flow_ip2;
-// register<bit<8>>(5000) flow_protocol;
+
 register<bit<32>>(10) debug_reg;
 
 
@@ -105,7 +101,7 @@ struct headers {
 /*************** TEST ***************/
     print_t       print;
 /************************************/
-    debug_t       debug;
+    debug_t       spinner;
     intrinsic_metadata_t    intrinsic_metadata;
 
 }
@@ -173,26 +169,19 @@ control MyIngress(inout headers hdr,
 
     action forward(egressSpec_t port) {
         standard_metadata.egress_spec = (bit<16>)port;
-        /*************** TEST ***************/
-		// myRegister.write(1, hdr.addi.meta2);
-        /************************************/
-        do_clustering();
-        //TODO verify if it's 0
-        flow_label.write((bit<32>)hdr.print.index, hdr.print.label);
-        debug_reg.write((bit<32>)0, (bit<32>)hdr.debug.v1);
-        debug_reg.write((bit<32>)1, (bit<32>)hdr.debug.v2);
-        debug_reg.write((bit<32>)2, (bit<32>)hdr.debug.v3);
-        debug_reg.write((bit<32>)3, (bit<32>)hdr.debug.v4);
-        debug_reg.write((bit<32>)4, (bit<32>)hdr.debug.v5);
-        debug_reg.write((bit<32>)5, (bit<32>)hdr.debug.v6);
-        debug_reg.write((bit<32>)6, (bit<32>)hdr.debug.v7);
-        debug_reg.write((bit<32>)7, (bit<32>)hdr.debug.v8);
-        debug_reg.write((bit<32>)8, (bit<32>)hdr.debug.v9);
-        debug_reg.write((bit<32>)9, (bit<32>)hdr.debug.v10);
 
-        //flow_ip1.write((bit<32>)hdr.print.index, hdr.print.ip1);
-        //flow_ip2.write((bit<32>)hdr.print.index, hdr.print.ip2);
-        //flow_protocol.write((bit<32>)hdr.print.index, hdr.print.protocol);
+        do_clustering();
+        debug_reg.write((bit<32>)0, (bit<32>)hdr.spinner.v1);
+        debug_reg.write((bit<32>)1, (bit<32>)hdr.spinner.v2);
+        debug_reg.write((bit<32>)2, (bit<32>)hdr.spinner.v3);
+        debug_reg.write((bit<32>)3, (bit<32>)hdr.spinner.v4);
+        debug_reg.write((bit<32>)4, (bit<32>)hdr.spinner.v5);
+        debug_reg.write((bit<32>)5, (bit<32>)hdr.spinner.v6);
+        debug_reg.write((bit<32>)6, (bit<32>)hdr.spinner.v7);
+        debug_reg.write((bit<32>)7, (bit<32>)hdr.spinner.v8);
+        debug_reg.write((bit<32>)8, (bit<32>)hdr.spinner.v9);
+        debug_reg.write((bit<32>)9, (bit<32>)hdr.spinner.v10);
+
     }
 
     table ip_forward {
@@ -208,19 +197,19 @@ control MyIngress(inout headers hdr,
 
     apply {
                            
-        hdr.debug.setValid();
-        hdr.debug.v1 = hdr.intrinsic_metadata.ingress_global_timestamp[63:32];
-        hdr.debug.v2 = hdr.intrinsic_metadata.ingress_global_timestamp[31:0];
-        hdr.debug.v3 = hdr.intrinsic_metadata.current_global_timestamp[63:32];
-        hdr.debug.v4 = hdr.intrinsic_metadata.current_global_timestamp[31:0];
-        hdr.debug.v5 = hdr.intrinsic_metadata.current_global_timestamp[63:32] - hdr.intrinsic_metadata.ingress_global_timestamp[63:32];
-        hdr.debug.v6 = 0;
-        hdr.debug.v7 = 0;
-        hdr.debug.v8 = 0;
-        hdr.debug.v9 = 0;
-        hdr.debug.v10 = 0;
+        hdr.spinner.setValid();
+        hdr.spinner.v1 = hdr.intrinsic_metadata.ingress_global_timestamp[63:32];
+        hdr.spinner.v2 = hdr.intrinsic_metadata.ingress_global_timestamp[31:0];
+        hdr.spinner.v3 = hdr.intrinsic_metadata.current_global_timestamp[63:32];
+        hdr.spinner.v4 = hdr.intrinsic_metadata.current_global_timestamp[31:0];
+        hdr.spinner.v5 = 0;
+        hdr.spinner.v6 = 0;
+        hdr.spinner.v7 = 0;
+        hdr.spinner.v8 = 0;
+        hdr.spinner.v9 = 0;
+        hdr.spinner.v10 = 0;
         ip_forward.apply();
-        hdr.debug.setInvalid();
+        hdr.spinner.setInvalid();
 
     }
 }
@@ -277,7 +266,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.tcp);
         packet.emit(hdr.udp);
         packet.emit(hdr.print);
-        packet.emit(hdr.debug);
+        packet.emit(hdr.spinner);
     }
 }
 

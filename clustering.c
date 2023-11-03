@@ -8,24 +8,23 @@
 
 #define CPU_MAX 10
 #define FLOWS 5000
-#define CENTROIDS_COUNT 2
+#define NUM_CENTROIDS 2
 #define INTERVAL 550
 #define MAXUINT 4294967295
 #define AMORTIZATION 20
 
-__declspec(emem shared scope(global) export) uint32_t hash_table_bytes[FLOWS];   // An hash table keeping bytes' number of each flow of the network
-__declspec(emem shared scope(global) export) uint16_t hash_table_counter[FLOWS]; // An hash table counting how many packets have been received from each flow of the network
+__declspec(emem shared scope(global) export) uint32_t hash_table_bytes[FLOWS];
+__declspec(emem shared scope(global) export) uint16_t hash_table_counter[FLOWS];
 __declspec(emem shared scope(global) export) uint32_t hash_table_labels[FLOWS];
-__declspec(emem shared scope(global) export) uint32_t hash_table_ts[FLOWS][2]; // An hash table keeping timestamp of each flow of the network
+__declspec(emem shared scope(global) export) uint32_t hash_table_ts[FLOWS][2];
 __declspec(emem export aligned(64)) int global_semaforos[CPU_MAX + 1];
 __declspec(emem shared scope(global) export) uint32_t hash_table_centroids[FLOWS];
 
-__declspec(emem shared scope(global) export) uint32_t id[2];
 __declspec(emem shared scope(global) export) uint32_t label;
 __declspec(emem shared scope(global) export) uint32_t good_centroid_index;
 __declspec(emem shared scope(global) export) uint32_t amrt_counter;
 __declspec(emem shared scope(global) export) uint32_t count_centroids;
-__declspec(emem shared scope(global) export) uint32_t centroids[CENTROIDS_COUNT + 1][7];
+__declspec(emem shared scope(global) export) uint32_t centroids[NUM_CENTROIDS + 1][7];
 
 typedef struct
 {
@@ -92,15 +91,13 @@ void pif_plugin_init_master()
         hash_table_labels[i] = 0;
     }
 
-    for (i = 0; i < CENTROIDS_COUNT + 1; i++)
+    for (i = 0; i < NUM_CENTROIDS + 1; i++)
     {
         for (j = 0; j < 7; j++)
         {
             centroids[i][j] = 0;
         }
     }
-    id[1] = 0;
-    id[0] = 0;
     label = 0;
     good_centroid_index = 0;
     count_centroids = 0;
@@ -128,19 +125,6 @@ uint32_t getDistance(pos point, uint32_t aux, uint32_t aux2)
     return distance;
 }
 
-// uint8_t is_outside_clusters(pos point)
-// {
-//     uint8_t i;
-//     for (i = 0; i < CENTROIDS_COUNT; i++)
-//     {
-//         if (getDistance(point, i) <= centroids[i][3])
-//         {
-//             return 0;
-//         }
-//     }
-//     return 1;
-// }
-
 uint32_t calculate_distance(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2)
 {
     uint32_t distance;
@@ -157,7 +141,7 @@ uint8_t find_centroid_index_from_color(uint32_t color)
     uint32_t aux = 0;
     uint8_t i = 0;
 
-    for (i = 0; i < CENTROIDS_COUNT; i++)
+    for (i = 0; i < NUM_CENTROIDS; i++)
     {
         mem_read_atomic(&xr, (__mem40 void *)&centroids[i][2], sizeof(xr));
         aux = xr;
@@ -187,7 +171,7 @@ uint32_t find_closest_centroid(pos point)
     aux2 = xr;
     distance = getDistance(point, aux, aux2);
 
-    for (i = 1; i < CENTROIDS_COUNT + 1; i++)
+    for (i = 1; i < NUM_CENTROIDS + 1; i++)
     {
         mem_read_atomic(&xr, (__mem40 void *)&centroids[i][0], sizeof(xr));
         aux = xr;
@@ -225,7 +209,7 @@ void decide_centroid()
     mem_read_atomic(&xr, (__mem40 void *)&centroids[0][4], sizeof(xr));
     smallest_neighbor = xr;
 
-    for (i = 1; i < CENTROIDS_COUNT + 1; i++) // Procura o centroide menos ativo e o com menos vizinhos
+    for (i = 1; i < NUM_CENTROIDS + 1; i++)
     {
         mem_read_atomic(&xr, (__mem40 void *)&centroids[i][5], sizeof(xr));
         aux1 = xr;
@@ -236,14 +220,14 @@ void decide_centroid()
         }
         mem_read_atomic(&xr, (__mem40 void *)&centroids[i][4], sizeof(xr));
         aux2 = xr;
-        if (i != CENTROIDS_COUNT && aux2 < smallest_neighbor)
+        if (i != NUM_CENTROIDS && aux2 < smallest_neighbor)
         {
             smallest_neighbor = aux2;
             sn_index = i;
         }
     }
 
-    if (la_index == CENTROIDS_COUNT)
+    if (la_index == NUM_CENTROIDS)
         return;
 
     mem_read_atomic(&xr, (__mem40 void *)&good_centroid_index, sizeof(xr));
@@ -252,7 +236,7 @@ void decide_centroid()
     if (la_index != local_good_centroid_index)
     {
 
-        mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][1], sizeof(xr));
+        mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][1], sizeof(xr));
         aux1 = xr;
         aux2 = (la_index + 1) % 2;
         mem_read_atomic(&xr, (__mem40 void *)&centroids[aux2][1], sizeof(xr));
@@ -291,7 +275,7 @@ void decide_centroid()
     }
     else if (la_index == local_good_centroid_index)
     {
-        mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][1], sizeof(xr));
+        mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][1], sizeof(xr));
         aux1 = xr;
         aux2 = (la_index + 1) % 2;
         mem_read_atomic(&xr, (__mem40 void *)&centroids[aux2][1], sizeof(xr));
@@ -300,38 +284,36 @@ void decide_centroid()
             la_index = aux2;
     }
 
-    // la_index = (la_index + 1) % 2;
-
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][0], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][0], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][0], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][1], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][1], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][1], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][2], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][2], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][2], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][3], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][3], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][3], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][4], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][4], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][4], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][5], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][5], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][5], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[CENTROIDS_COUNT][6], sizeof(xr));
+    mem_read_atomic(&xr, (__mem40 void *)&centroids[NUM_CENTROIDS][6], sizeof(xr));
     aux1 = xr;
     xw = aux1;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[la_index][6], sizeof(xw));
 
-    for (i = 0; i < CENTROIDS_COUNT; i++)
+    for (i = 0; i < NUM_CENTROIDS; i++)
     {
         mem_read_atomic(&xr, (__mem40 void *)&centroids[i][1], sizeof(xr));
         aux1 = xr;
@@ -374,19 +356,14 @@ void decide_centroid()
     xw = good_index;
     mem_write_atomic(&xw, (__mem40 void *)&good_centroid_index, sizeof(xw));
 
-    // xw = 0;
-    // mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][0], sizeof(xw));
-    // mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][1], sizeof(xw));
-    // mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][2], sizeof(xw));
-    // mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][3], sizeof(xw));
-    mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][4], sizeof(xw));
-    mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][5], sizeof(xw));
+    mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][4], sizeof(xw));
+    mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][5], sizeof(xw));
 }
 
 int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_data)
 {
     pos point;
-    PIF_PLUGIN_debug_T *debug = pif_plugin_hdr_get_debug(headers);
+    PIF_PLUGIN_spinner_T *spinner = pif_plugin_hdr_get_spinner(headers);
     PIF_PLUGIN_ipv4_T *ipv4 = pif_plugin_hdr_get_ipv4(headers);
     uint32_t color = 0;
     uint32_t is_assigned = 0;
@@ -395,15 +372,15 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
     uint32_t update_point = 0;
     uint32_t aux, aux2, aux3;
     uint32_t total_bytes = 0;
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
     uint32_t flow_id;
     uint32_t data_length = 0;
-    uint32_t timestamp;
-    uint32_t last_ts;
+    uint32_t current_timestamp;
+    uint32_t old_timestamp;
     uint32_t local_count_centroids;
-    uint32_t i, j, distances[CENTROIDS_COUNT];
+    uint32_t i, j, distances[NUM_CENTROIDS];
     uint8_t is_outside_clusters = 1;
+    __xwrite uint32_t xw = 0;
+    __xread uint32_t xr;
 
     flow_id = getHash(ipv4->srcAddr, ipv4->dstAddr, FLOWS - 1);
 
@@ -418,12 +395,12 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
     mem_read_atomic(&xr, (__mem40 void *)&hash_table_centroids[flow_id], sizeof(xr));
     aux3 = xr;
 
-    PIF_HEADER_SET_debug___v9(debug, (uint32_t)aux2);
-    PIF_HEADER_SET_debug___v10(debug, (uint32_t)aux3);
+    PIF_HEADER_SET_spinner___v9(spinner, (uint32_t)aux2);
+    PIF_HEADER_SET_spinner___v10(spinner, (uint32_t)aux3);
 
     if (aux2 == aux3)
     {
-        ipv4->ecn = 1;
+        PIF_HEADER_SET_ipv4___ecn(ipv4, 1);
     }
 
     semaforo_up(&global_semaforos[0]);
@@ -437,25 +414,24 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
         mem_write_atomic(&xw, (__mem40 void *)&hash_table_counter[flow_id], sizeof(xw));
         xw = data_length;
         mem_write_atomic(&xw, (__mem40 void *)&hash_table_bytes[flow_id], sizeof(xw));
-        xw = debug->v1;
+        xw = spinner->v1;
         mem_write_atomic(&xw, (__mem40 void *)&hash_table_ts[flow_id][0], sizeof(xw));
-        xw = debug->v2;
+        xw = spinner->v2;
         mem_write_atomic(&xw, (__mem40 void *)&hash_table_ts[flow_id][1], sizeof(xw));
     }
     else
     {
         mem_incr32((__mem40 void *)&hash_table_counter[flow_id]);
         xw = data_length;
-        mem_add32(&xw, (__mem40 void *)&hash_table_bytes[flow_id], sizeof(xw)); // Atualiza o numero de bytes do fluxo
+        mem_add32(&xw, (__mem40 void *)&hash_table_bytes[flow_id], sizeof(xw));
         mem_read_atomic(&xr, (__mem40 void *)&hash_table_counter[flow_id], sizeof(xr));
         cur_count = xr;
-        // PIF_HEADER_SET_debug___v8(debug, (uint32_t)cur_count);
 
-        if (cur_count >= INTERVAL) // Se o contador chegar ao intervalo
+        if (cur_count >= INTERVAL)
         {
             xw = 0;
-            mem_write_atomic(&xw, (__mem40 void *)&hash_table_counter[flow_id], sizeof(xw)); // Reinicia o contador
-            update_point = 1;                                                                // Retorna 1 para indicar que o pacote deve ser processado
+            mem_write_atomic(&xw, (__mem40 void *)&hash_table_counter[flow_id], sizeof(xw));
+            update_point = 1;                                                                
         }
     }
 
@@ -464,19 +440,19 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
 
     if (update_point)
     {
-        last_ts = debug->v2;
+        current_timestamp = spinner->v2;
         mem_read_atomic(&xr, (__mem40 void *)&hash_table_labels[flow_id], sizeof(xr));
         old_color = xr;
 
         mem_read_atomic(&xr, (__mem40 void *)&hash_table_ts[flow_id][1], sizeof(xr));
         aux = xr;
-        timestamp = aux;
+        old_timestamp = aux;
 
         point.x = ((total_bytes) / cur_count);
 
-        point.y = (total_bytes * 8 * 10000000) / ((last_ts - timestamp) / 10);
+        point.y = (total_bytes * 8 * 10000000) / ((current_timestamp - old_timestamp) / 10);
 
-        for (i = 0; i < CENTROIDS_COUNT; i++)
+        for (i = 0; i < NUM_CENTROIDS; i++)
         {
             mem_read_atomic(&xr, (__mem40 void *)&centroids[i][0], sizeof(xr));
             aux = xr;
@@ -494,7 +470,7 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
         aux = xr;
         if (aux < AMORTIZATION)
         {
-            for (i = 0; i < CENTROIDS_COUNT; i++)
+            for (i = 0; i < NUM_CENTROIDS; i++)
             {
                 mem_read_atomic(&xr, (__mem40 void *)&centroids[i][0], sizeof(xr));
                 aux = xr;
@@ -508,8 +484,6 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
                     aux = xr;
                     xw = aux;
                     mem_write_atomic(&xw, (__mem40 void *)&hash_table_labels[flow_id], sizeof(xw));
-                    // xw=i;//
-                    // mem_write_atomic(&xw, (__mem40 void *)&hash_table_centroids[flow_id], sizeof(xw));//
                     is_assigned = 1;
                     break;
                 }
@@ -523,10 +497,7 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
             }
             aux3 = find_centroid_index_from_color(color);
             mem_incr32((__mem40 void *)&centroids[aux3][5]);
-            // mem_read_atomic(&xr, (__mem40 void *)&centroids[aux3][5], sizeof(xr));
-            // aux = xr;
-            // xw = aux;
-            // mem_write_atomic(&xw, (__mem40 void *)&X, sizeof(xw));
+
 
             mem_incr32((__mem40 void *)&amrt_counter);
         }
@@ -534,13 +505,11 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
         {
             decide_centroid();
             mem_incr32((__mem40 void *)&amrt_counter);
-            // xw = 1000;
-            // mem_write_atomic(&xw, (__mem40 void *)&amrt_counter, sizeof(xw));
+
         }
         else if (is_outside_clusters)
         {
-            PIF_HEADER_SET_debug___v4(debug, (uint32_t)100);
-            if (local_count_centroids < CENTROIDS_COUNT)
+            if (local_count_centroids < NUM_CENTROIDS)
             {
                 xw = point.x;
                 mem_write_atomic(&xw, (__mem40 void *)&centroids[local_count_centroids][0], sizeof(xw));
@@ -580,38 +549,37 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
             else
             {
                 xw = point.x;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][0], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][0], sizeof(xw));
                 xw = point.y;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][1], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][1], sizeof(xw));
                 mem_read_atomic(&xr, (__mem40 void *)&label, sizeof(xr));
                 aux = xr;
                 xw = aux;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][2], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][2], sizeof(xw));
                 mem_write_atomic(&xw, (__mem40 void *)&hash_table_labels[flow_id], sizeof(xw));
                 xw = 0;
-                for (i = 0; i < CENTROIDS_COUNT; i++)
+                for (i = 0; i < NUM_CENTROIDS; i++)
                 {
                     mem_write_atomic(&xw, (__mem40 void *)&centroids[i][5], sizeof(xw));
                 }
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][3], sizeof(xw));
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][5], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][3], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][5], sizeof(xw));
                 mem_write_atomic(&xw, (__mem40 void *)&amrt_counter, sizeof(xw));
                 xw = 1;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][4], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][4], sizeof(xw));
                 mem_incr32((__mem40 void *)&label);
                 xw = flow_id;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[CENTROIDS_COUNT][6], sizeof(xw));
+                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][6], sizeof(xw));
             }
 
             if (ipv4->ecn == 3)
             {
-                ipv4->ecn = 1;
+                PIF_HEADER_SET_ipv4___ecn(ipv4, 1);
             }
         }
         else
         {
-            PIF_HEADER_SET_debug___v4(debug, (uint32_t)200);
-            for (i = 0; i < CENTROIDS_COUNT; i++)
+            for (i = 0; i < NUM_CENTROIDS; i++)
             {
                 mem_read_atomic(&xr, (__mem40 void *)&centroids[i][0], sizeof(xr));
                 aux = xr;
@@ -619,7 +587,6 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
                 aux2 = xr;
 
                 distances[i] = getDistance(point, aux, aux2);
-                PIF_HEADER_SET_debug___v3(debug, (uint32_t)distances[i]);
                 if (distances[i] <= centroids[i][3])
                 {
                     mem_read_atomic(&xr, (__mem40 void *)&centroids[i][2], sizeof(xr));
@@ -628,15 +595,13 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
                     mem_write_atomic(&xw, (__mem40 void *)&hash_table_labels[flow_id], sizeof(xw));
                     xw = i;
                     mem_write_atomic(&xw, (__mem40 void *)&hash_table_centroids[flow_id], sizeof(xw));
-                    // if (ipv4->ecn == 3)
-                    //{
+
                     mem_read_atomic(&xr, (__mem40 void *)&good_centroid_index, sizeof(xr));
                     aux2 = xr;
                     if (aux2 == i)
                     {
-                        ipv4->ecn = 1;
+                        PIF_HEADER_SET_ipv4___ecn(ipv4, 1);
                     }
-                    //}
                     break;
                 }
             }
@@ -655,45 +620,6 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
 
     semaforo_down(&global_semaforos[0]);
 
-    // PIF_HEADER_SET_debug___v1(debug, (uint32_t)ipv4->ecn);
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[0][0], sizeof(xr));
-    // aux = xr;
-    // // PIF_HEADER_SET_debug___v2(debug, (uint32_t)aux);
-    // PIF_HEADER_SET_debug___v2(debug, (uint32_t)aux);
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[0][1], sizeof(xr));
-    // aux = xr;
-    // PIF_HEADER_SET_debug___v3(debug, (uint32_t)aux);
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[0][6], sizeof(xr));
-    // aux = xr;
-    // PIF_HEADER_SET_debug___v4(debug, (uint32_t)aux);
-
-    if (debug->v2 > debug->v4)
-    {
-        aux = debug->v2 - debug->v4;
-    }
-    else
-    {
-        aux = debug->v4 - debug->v2;
-    }
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[1][0], sizeof(xr));
-    // aux = xr;
-    PIF_HEADER_SET_debug___v5(debug, (uint32_t)aux);
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[1][1], sizeof(xr));
-    // aux = xr;
-    // PIF_HEADER_SET_debug___v6(debug, (uint32_t)aux);
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[1][6], sizeof(xr));
-    // aux = xr;
-    // PIF_HEADER_SET_debug___v7(debug, (uint32_t)aux);
-
-    // mem_read_atomic(&xr, (__mem40 void *)&centroids[0][3], sizeof(xr));
-    // aux = xr;
-    // PIF_HEADER_SET_debug___v8(debug, (uint32_t)aux);
 
     return PIF_PLUGIN_RETURN_FORWARD;
 }
