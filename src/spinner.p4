@@ -88,8 +88,6 @@ header print_t {
   bit<8> protocol;
 }
 
-register<bit<32>>(10) debug_reg;
-
 
 /************************************/
 
@@ -171,16 +169,6 @@ control MyIngress(inout headers hdr,
         standard_metadata.egress_spec = (bit<16>)port;
 
         do_clustering();
-        debug_reg.write((bit<32>)0, (bit<32>)hdr.spinner.v1);
-        debug_reg.write((bit<32>)1, (bit<32>)hdr.spinner.v2);
-        debug_reg.write((bit<32>)2, (bit<32>)hdr.spinner.v3);
-        debug_reg.write((bit<32>)3, (bit<32>)hdr.spinner.v4);
-        debug_reg.write((bit<32>)4, (bit<32>)hdr.spinner.v5);
-        debug_reg.write((bit<32>)5, (bit<32>)hdr.spinner.v6);
-        debug_reg.write((bit<32>)6, (bit<32>)hdr.spinner.v7);
-        debug_reg.write((bit<32>)7, (bit<32>)hdr.spinner.v8);
-        debug_reg.write((bit<32>)8, (bit<32>)hdr.spinner.v9);
-        debug_reg.write((bit<32>)9, (bit<32>)hdr.spinner.v10);
 
     }
 
