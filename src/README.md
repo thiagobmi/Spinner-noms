@@ -2,6 +2,6 @@
 
 - "spinner.c" defines the main clustering algorithm.
 
-- "spinner.p4" defines useful headers and registers to verify the result.
+- "spinner.p4" defines useful headers.
   
 - "myconfig.p4cfg" defines initial table rules.
