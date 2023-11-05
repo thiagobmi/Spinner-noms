@@ -13,23 +13,23 @@
 #define AMORTIZATION 20
 
 #define MAXUINT 4294967295
-__declspec(emem shared scope(global) export) uint32_t hash_table_bytes[FLOWS];
-__declspec(emem shared scope(global) export) uint16_t hash_table_counter[FLOWS];
-__declspec(emem shared scope(global) export) uint32_t hash_table_labels[FLOWS];
-__declspec(emem shared scope(global) export) uint32_t hash_table_ts[FLOWS][2];
+__declspec(emem shared scope(global) export) int hash_table_bytes[FLOWS];
+__declspec(emem shared scope(global) export) int hash_table_counter[FLOWS];
+__declspec(emem shared scope(global) export) int hash_table_labels[FLOWS];
+__declspec(emem shared scope(global) export) int hash_table_ts[FLOWS][2];
 __declspec(emem export aligned(64)) int global_semaforos[CPU_MAX + 1];
-__declspec(emem shared scope(global) export) uint32_t hash_table_centroids[FLOWS];
+__declspec(emem shared scope(global) export) int hash_table_centroids[FLOWS];
 
-__declspec(emem shared scope(global) export) uint32_t label;
-__declspec(emem shared scope(global) export) uint32_t good_centroid_index;
-__declspec(emem shared scope(global) export) uint32_t amrt_counter;
-__declspec(emem shared scope(global) export) uint32_t count_centroids;
-__declspec(emem shared scope(global) export) uint32_t centroids[NUM_CENTROIDS + 1][7];
+__declspec(emem shared scope(global) export) int label;
+__declspec(emem shared scope(global) export) int good_centroid_index;
+__declspec(emem shared scope(global) export) int amrt_counter;
+__declspec(emem shared scope(global) export) int count_centroids;
+__declspec(emem shared scope(global) export) int centroids[NUM_CENTROIDS + 1][6];
 
 typedef struct
 {
-    uint32_t x;
-    uint32_t y;
+    int x;
+    int y;
 } pos;
 
 void semaforo_down(volatile __declspec(mem addr40) void *addr)
@@ -73,8 +73,8 @@ void pif_plugin_init()
 
 void pif_plugin_init_master()
 {
-    uint32_t i;
-    uint32_t j;
+    int i;
+    int j;
     for (i = 0; i < CPU_MAX + 1; i++)
     {
         global_semaforos[i] = 0;
@@ -93,7 +93,7 @@ void pif_plugin_init_master()
 
     for (i = 0; i < NUM_CENTROIDS + 1; i++)
     {
-        for (j = 0; j < 7; j++)
+        for (j = 0; j < 6; j++)
         {
             centroids[i][j] = 0;
         }
@@ -104,10 +104,10 @@ void pif_plugin_init_master()
     amrt_counter = 1000;
 }
 
-int getHash(uint32_t ip1, uint32_t ip2, uint32_t HASH_MAX)
+int getHash(int ip1, int ip2, int HASH_MAX)
 {
-    uint32_t hash_key[3];
-    uint32_t hash_id;
+    int hash_key[3];
+    int hash_id;
     hash_key[0] = ip1;
     hash_key[1] = ip2;
     hash_id = hash_me_crc32((void *)hash_key, sizeof(hash_key), 1);
@@ -115,16 +115,16 @@ int getHash(uint32_t ip1, uint32_t ip2, uint32_t HASH_MAX)
     return (int)hash_id;
 }
 
-int update_point(EXTRACTED_HEADERS_T *headers, uint32_t flow_id)
+int update_point(EXTRACTED_HEADERS_T *headers, int flow_id)
 {
     pos point;
     PIF_PLUGIN_spinner_T *spinner = pif_plugin_hdr_get_spinner(headers);
     PIF_PLUGIN_ipv4_T *ipv4 = pif_plugin_hdr_get_ipv4(headers);
-    uint32_t aux;
-    uint32_t data_length = 0;
-    uint32_t cur_count = 0;
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
+    int aux;
+    int data_length = 0;
+    int cur_count = 0;
+    __xwrite int xw = 0;
+    __xread int xr;
 
     mem_read_atomic(&xr, (__mem40 void *)&hash_table_counter[flow_id], sizeof(xr));
     aux = xr;
@@ -161,9 +161,9 @@ int update_point(EXTRACTED_HEADERS_T *headers, uint32_t flow_id)
     return 0;
 }
 
-uint32_t get_distance(pos point, uint32_t x2, uint32_t y2)
+int get_distance(pos point, int x2, int y2)
 {
-    uint32_t distance;
+    int distance;
     distance = (x2 - point.x) + (y2 - point.y);
     if (point.x + point.y > x2 + y2)
         distance = MAXUINT - distance;
@@ -171,10 +171,10 @@ uint32_t get_distance(pos point, uint32_t x2, uint32_t y2)
     return distance;
 }
 
-uint8_t find_centroid_index_from_color(uint32_t color)
+uint8_t find_centroid_index_from_color(int color)
 {
-    __xread uint32_t xr;
-    uint32_t aux = 0;
+    __xread int xr;
+    int aux = 0;
     uint8_t i = 0;
 
     for (i = 0; i < NUM_CENTROIDS; i++)
@@ -191,15 +191,15 @@ uint8_t find_centroid_index_from_color(uint32_t color)
     return i;
 }
 
-uint32_t find_closest_centroid(pos point)
+int find_closest_centroid(pos point)
 {
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
-    uint32_t distance_i;
-    uint32_t distance;
+    __xwrite int xw = 0;
+    __xread int xr;
+    int distance_i;
+    int distance;
     uint8_t index = 0;
     uint8_t i;
-    uint32_t aux = 0;
+    int aux = 0;
     pos centroid_pos;
 
     mem_read_atomic(&xr, (__mem40 void *)&centroids[0][0], sizeof(xr));
@@ -227,11 +227,11 @@ uint32_t find_closest_centroid(pos point)
     aux = xr;
     return aux;
 }
-void replace_centroid(uint32_t read_index, uint32_t write_index)
+void replace_centroid(int read_index, int write_index)
 {
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
-    uint32_t aux = 0;
+    __xwrite int xw = 0;
+    __xread int xr;
+    int aux = 0;
 
     mem_read_atomic(&xr, (__mem40 void *)&centroids[read_index][0], sizeof(xr));
     aux = xr;
@@ -257,26 +257,22 @@ void replace_centroid(uint32_t read_index, uint32_t write_index)
     aux = xr;
     xw = aux;
     mem_write_atomic(&xw, (__mem40 void *)&centroids[write_index][5], sizeof(xw));
-    mem_read_atomic(&xr, (__mem40 void *)&centroids[read_index][6], sizeof(xr));
-    aux = xr;
-    xw = aux;
-    mem_write_atomic(&xw, (__mem40 void *)&centroids[write_index][6], sizeof(xw));
 }
 
 void decide_centroid()
 {
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
-    uint32_t aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
-    uint32_t local_good_centroid_index = 0;
-    uint32_t less_active = 0;
-    uint32_t largest_ipg = 0;
-    uint32_t good_index = 0;
+    __xwrite int xw = 0;
+    __xread int xr;
+    int aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
+    int local_good_centroid_index = 0;
+    int less_active = 0;
+    int largest_ipg = 0;
+    int good_index = 0;
     uint8_t la_index = 0;
-    uint32_t smallest_neighbor = 0;
+    int smallest_neighbor = 0;
     uint8_t sn_index = 0;
     uint8_t i;
-    uint32_t distance = 0;
+    int distance = 0;
     pos point;
     mem_read_atomic(&xr, (__mem40 void *)&centroids[0][5], sizeof(xr));
     less_active = xr;
@@ -385,7 +381,7 @@ void decide_centroid()
 
 uint8_t is_outside_clusters(pos point)
 {
-    __xread uint32_t xr;
+    __xread int xr;
     uint8_t i = 0;
     pos centroid_pos;
 
@@ -405,12 +401,12 @@ uint8_t is_outside_clusters(pos point)
     return 1;
 }
 
-uint8_t assign_centroid(pos point, uint32_t flow_id)
+uint8_t assign_centroid(pos point, int flow_id)
 {
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
-    uint32_t aux = 0;
-    uint32_t distances[NUM_CENTROIDS];
+    __xwrite int xw = 0;
+    __xread int xr;
+    int aux = 0;
+    int distances[NUM_CENTROIDS];
     uint8_t i = 0;
     pos centroid_pos;
 
@@ -443,14 +439,14 @@ uint8_t assign_centroid(pos point, uint32_t flow_id)
     return 0;
 }
 
-void update_counter_and_assign(pos point, uint32_t flow_id)
+void update_counter_and_assign(pos point, int flow_id)
 {
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
-    uint32_t aux = 0;
-    uint32_t distances[NUM_CENTROIDS];
-    uint32_t color = 0;
-    uint32_t is_assigned = 0;
+    __xwrite int xw = 0;
+    __xread int xr;
+    int aux = 0;
+    int distances[NUM_CENTROIDS];
+    int color = 0;
+    int is_assigned = 0;
     uint8_t i = 0;
     pos centroid_pos;
 
@@ -485,12 +481,12 @@ void update_counter_and_assign(pos point, uint32_t flow_id)
     mem_incr32((__mem40 void *)&amrt_counter);
 }
 
-void calculate_threshold(pos point, uint32_t local_count_centroids)
+void calculate_threshold(pos point, int local_count_centroids)
 {
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
-    uint32_t aux = 0;
-    uint32_t distances[NUM_CENTROIDS];
+    __xwrite int xw = 0;
+    __xread int xr;
+    int aux = 0;
+    int distances[NUM_CENTROIDS];
     uint8_t i = 0;
     pos centroid_pos;
 
@@ -517,16 +513,16 @@ void calculate_threshold(pos point, uint32_t local_count_centroids)
     }
 }
 
-pos compute_data(uint32_t flow_id, uint32_t current_timestamp)
+pos compute_data(int flow_id, int current_timestamp)
 {
 
     pos point;
-    __xread uint32_t xr;
-    uint32_t aux = 0;
-    uint32_t total_bytes = 0;
-    uint32_t cur_count = 0;
-    uint32_t old_color = 0;
-    uint32_t old_timestamp = 0;
+    __xread int xr;
+    int aux = 0;
+    int total_bytes = 0;
+    int cur_count = 0;
+    int old_color = 0;
+    int old_timestamp = 0;
 
     mem_read_atomic(&xr, (__mem40 void *)&hash_table_bytes[flow_id], sizeof(xr));
     total_bytes = xr;
@@ -542,18 +538,17 @@ pos compute_data(uint32_t flow_id, uint32_t current_timestamp)
     old_timestamp = aux;
 
     point.x = ((total_bytes) / cur_count);
-
     point.y = (total_bytes * 8 * 10000000) / ((current_timestamp - old_timestamp) / 10);
+
     return point;
 }
 
 int decide_ecn(int flow_id)
 {
-
-    __xread uint32_t xr;
-    uint32_t aux = 0;
-    uint32_t aux2 = 0;
-    uint32_t local_count_centroids = 0;
+    __xread int xr;
+    int aux = 0;
+    int aux2 = 0;
+    int local_count_centroids = 0;
 
     mem_read_atomic(&xr, (__mem40 void *)&count_centroids, sizeof(xr));
     local_count_centroids = xr;
@@ -564,7 +559,6 @@ int decide_ecn(int flow_id)
     mem_read_atomic(&xr, (__mem40 void *)&hash_table_centroids[flow_id], sizeof(xr));
     aux2 = xr;
 
-
     if (aux == aux2)
     {
         return 1;
@@ -572,18 +566,36 @@ int decide_ecn(int flow_id)
     return 0;
 }
 
+void start_amrt_counter()
+{
+    
+    __xwrite int xw = 0;
+    int i = 0;
+    
+    for (i = 0; i < NUM_CENTROIDS; i++)
+    {
+        mem_write_atomic(&xw, (__mem40 void *)&centroids[i][5], sizeof(xw));
+    }
+    mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][3], sizeof(xw));
+    mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][5], sizeof(xw));
+    mem_write_atomic(&xw, (__mem40 void *)&amrt_counter, sizeof(xw));
+    xw = 1;
+    mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][4], sizeof(xw));
+    mem_incr32((__mem40 void *)&label);
+}
+
 int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_data)
 {
     pos point;
     PIF_PLUGIN_spinner_T *spinner = pif_plugin_hdr_get_spinner(headers);
     PIF_PLUGIN_ipv4_T *ipv4 = pif_plugin_hdr_get_ipv4(headers);
-    uint32_t old_color = 0;
-    uint32_t aux, aux2, aux3;
-    uint32_t flow_id;
-    uint32_t local_count_centroids;
-    uint32_t i;
-    __xwrite uint32_t xw = 0;
-    __xread uint32_t xr;
+    int old_color = 0;
+    int aux, index;
+    int flow_id;
+    int local_count_centroids;
+    int i;
+    __xwrite int xw = 0;
+    __xread int xr;
 
     flow_id = getHash(ipv4->srcAddr, ipv4->dstAddr, FLOWS - 1);
 
@@ -639,19 +651,7 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
                 xw = aux;
                 mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][2], sizeof(xw));
                 mem_write_atomic(&xw, (__mem40 void *)&hash_table_labels[flow_id], sizeof(xw));
-                xw = 0;
-                for (i = 0; i < NUM_CENTROIDS; i++)
-                {
-                    mem_write_atomic(&xw, (__mem40 void *)&centroids[i][5], sizeof(xw));
-                }
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][3], sizeof(xw));
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][5], sizeof(xw));
-                mem_write_atomic(&xw, (__mem40 void *)&amrt_counter, sizeof(xw));
-                xw = 1;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][4], sizeof(xw));
-                mem_incr32((__mem40 void *)&label);
-                xw = flow_id;
-                mem_write_atomic(&xw, (__mem40 void *)&centroids[NUM_CENTROIDS][6], sizeof(xw));
+                start_amrt_counter();
             }
 
             if (ipv4->ecn == 3)
@@ -672,10 +672,10 @@ int pif_plugin_do_clustering(EXTRACTED_HEADERS_T *headers, MATCH_DATA_T *match_d
 
         if (old_color != hash_table_labels[flow_id])
         {
-            aux3 = find_centroid_index_from_color(aux);
-            mem_incr32((__mem40 void *)&centroids[aux3][4]);
-            aux3 = find_centroid_index_from_color(old_color);
-            mem_decr32((__mem40 void *)&centroids[aux3][4]);
+            index = find_centroid_index_from_color(aux);
+            mem_incr32((__mem40 void *)&centroids[index][4]);
+            index = find_centroid_index_from_color(old_color);
+            mem_decr32((__mem40 void *)&centroids[index][4]);
         }
     }
 
