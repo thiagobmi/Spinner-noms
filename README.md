@@ -27,7 +27,7 @@ $ P4C_BIN_DIR/nfp4build --output-nffw-filename $PATH_EXP/code/firmware.nffw -4 $
 --nfirc_no_zero_new_headers --nfirc_multicast_group_count 16 --nfirc_multicast_group_size 16 -DPIF_PLUGIN_INIT
 ```
 - **options:**
-  - ```-DPIF_PLUGIN_INIT```: initializes and enables the use of system calls  ```pif_plugin_init_master() { ... }``` e ```pif_plugin_init() { }```
+  - ```-DPIF_PLUGIN_INIT```: initializes and enables the use of system calls  ```pif_plugin_init_master() { ... }``` e ```pif_plugin_init() {}```
   - ```plugin="$PATH_EXP/spinner.c"``` : compiles with Spinner's micro-c plugin;
 
 ## Loading
@@ -40,6 +40,7 @@ $ P4C_BIN_DIR/rtecli -p 20206 design-load -f $PATH_EXP/code/firmware.nffw -c $PA
   - ```-c $PATH_EXP/myconfig.p4cfg```: sets the custom table passed as argument as the default table.
  
 ## Usage
+### Server 3
 For practical purposes, the compilation and firmware loading processes for the Spinner have been streamlined into three main scripts.
 Therefore, after configuring your environment and installing the appropriate smartNIC drivers, the Spinner can be utilized by following the steps below:
 
@@ -59,3 +60,28 @@ Therefore, after configuring your environment and installing the appropriate sma
 > ```
 
 After being loaded onto the SmartNIC, Spinner will automatically initiate the process of identifying and clustering packet flows passing through the board.
+
+### Server 1
+The generation of massive traffic was achieved using the MoonGen traffic generator. The following command was employed:
+
+
+- **tx/rx**: the source and destination ports;
+- **--src-ip/--dst-ip**: the source and destination IPs;
+- **-sipv/-dipv**: the presence of variation (0.0.0.1) or absence (0.0.0.0) in the source/destination IPs;
+- **--pkt-size**: the packet size in bytes.
+- **-pps**: the number of packets sent per second.
+
+```
+/opt/MoonGen/build/MoonGen /opt/MoonGen/examples/netronome-packetgen/packetgen.lua 
+-tx 1 -rx 1  -sipv 10.0.1.10 --sipv 0.0.0.0 --src-ip 10.0.1.11
+ --src-ip-vary 10.10.10.10  --pkt-size [X] -pps [Y]
+```
+
+### Server 2
+On server 2, we created two namespaces, one for receiving packets and another for sending. Subsequently, we employed iperf3 to generate legitimate TCP traffic.
+```
+ip netns exec receiver iperf3 -s &
+ip netns exec sender iperf3 -c 30.30.30.2 -t 55
+```
+
+
