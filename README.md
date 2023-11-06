@@ -21,10 +21,10 @@ The figure below llustrates the algorithm’s main idea.
 To perform the compilation via the command line in Linux, the following command was used:
 
 ```
-$ P4C_BIN_DIR/nfp4build --output-nffw-filename $PATH_EXP/code/firmware.nffw -4 $PATH_EXP/spinner.p4 -c $PATH_EXP/spinner.c
---sku nfp-4xxx-b0 --platform hydrogen --reduced-thread-usage --shared-codestore --debug-info --nfp4c_p4_version 16
---nfp4c_p4_compiler p4c-nfp --nfirc_default_table_size 65536 --nfirc_no_all_header_ops --nfirc_implicit_header_valid
---nfirc_no_zero_new_headers --nfirc_multicast_group_count 16 --nfirc_multicast_group_size 16 -DPIF_PLUGIN_INIT
+$ P4C_BIN_DIR/nfp4build --output-nffw-filename $PATH_EXP/code/firmware.nffw -4 $PATH_EXP/spinner.p4 -c $PATH_EXP/spinner.c \
+--sku nfp-4xxx-b0 --platform hydrogen --reduced-thread-usage --shared-codestore --debug-info --nfp4c_p4_version 16 \
+--nfp4c_p4_compiler p4c-nfp --nfirc_default_table_size 65536 --nfirc_no_all_header_ops --nfirc_implicit_header_valid \
+--nfirc_no_zero_new_headers --nfirc_multicast_group_count 16 --nfirc_multicast_group_size 16 -DPIF_PLUGIN_INIT \
 ```
 - **options:**
   - ```-DPIF_PLUGIN_INIT```: initializes and enables the use of system calls  ```pif_plugin_init_master() { ... }``` e ```pif_plugin_init() {}```
@@ -65,20 +65,26 @@ After being loaded onto the SmartNIC, Spinner will automatically initiate the pr
 The generation of massive traffic was achieved using the MoonGen traffic generator. The following command was employed:
 
 
-- **tx/rx**: the source and destination ports;
+- **-tx/-rx**: the source and destination ports;
 - **--src-ip/--dst-ip**: the source and destination IPs;
 - **-sipv/-dipv**: the presence of variation (0.0.0.1) or absence (0.0.0.0) in the source/destination IPs;
-- **--pkt-size**: the packet size in bytes.
+- **--pkt-size**: the packet size in bytes;
 - **-pps**: the number of packets sent per second.
 
 ```
-/opt/MoonGen/build/MoonGen /opt/MoonGen/examples/netronome-packetgen/packetgen.lua 
--tx 1 -rx 1  -sipv 10.0.1.10 --sipv 0.0.0.0 --src-ip 10.0.1.11
- --src-ip-vary 10.10.10.10  --pkt-size [X] -pps [Y]
+/opt/MoonGen/build/MoonGen /opt/MoonGen/examples/netronome-packetgen/packetgen.lua \
+-tx 1 -rx 1  -sipv 10.0.1.10 --sipv 0.0.0.0 --src-ip 10.0.1.11 \
+ --src-ip-vary 10.10.10.10  --pkt-size [X] -pps [Y] \
 ```
 
 ### Server 2
 On server 2, we created two namespaces, one for receiving packets and another for sending. Subsequently, we employed iperf3 to generate legitimate TCP traffic.
+
+
+- **-s**: execute in server mode.
+- **-c**: execute in client mode.
+- **-t**: the duration in seconds.
+
 ```
 ip netns exec receiver iperf3 -s &
 ip netns exec sender iperf3 -c 30.30.30.2 -t 55
