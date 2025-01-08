@@ -6,6 +6,7 @@
         <a href="#compilation">Compilation</a> &#183;
         <a href="#loading">Loading</a> &#183;
         <a href="#usage">Usage</a>
+        <a href="#cite">Cite</a>
     </p>
 </p>
 
