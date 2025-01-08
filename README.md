@@ -90,4 +90,16 @@ ip netns exec receiver iperf3 -s &
 ip netns exec sender iperf3 -c 30.30.30.2 -t 55
 ```
 
-
+## Cite
+```
+@INPROCEEDINGS{10575413,
+  author={Cannarozzo, Luigi and Morais, Thiago Bortoluzzi and de Souza, Paulo Silas Severo and Gobatto, Leonardo Reinehr and Lamb, Ivan Peter and Duarte, Pedro Arthur P. R. and Azambuja, José Rodrigo Furlanetto and Lorenzon, Arthur Francisco and Rossi, Fábio Diniz and Cordeiro, Weverton and Luizelli, Marcelo Caggiani},
+  booktitle={NOMS 2024-2024 IEEE Network Operations and Management Symposium}, 
+  title={Spinner: Enabling In-network Flow Clustering Entirely in a Programmable Data Plane}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={1-9},
+  keywords={Performance evaluation;Machine learning algorithms;Decision making;Prototypes;Clustering algorithms;Machine learning;Throughput;P4;in-network clustering;SmartNICs},
+  doi={10.1109/NOMS59830.2024.10575413}}
+```
