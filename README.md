@@ -5,7 +5,7 @@
         <a href="#overview">Overview</a> &#183;
         <a href="#compilation">Compilation</a> &#183;
         <a href="#loading">Loading</a> &#183;
-        <a href="#usage">Usage</a>
+        <a href="#usage">Usage</a> &#183;
         <a href="#cite">Cite</a>
     </p>
 </p>
